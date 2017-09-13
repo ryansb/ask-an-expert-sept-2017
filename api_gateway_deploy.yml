@@ -1,0 +1,11 @@
+---
+- hosts: localhost
+  gather_facts: false
+  connection: local
+  tasks:
+  - name: deploy new API
+    aws_api_gateway:
+      profile: demo
+      api_file: "./minimal-swagger-api.yml"
+      stage: "dev"
+    register: create_result

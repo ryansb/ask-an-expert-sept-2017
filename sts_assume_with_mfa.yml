@@ -1,0 +1,23 @@
+---
+- hosts: localhost
+  vars_prompt:
+  - name: two_factor_code
+    prompt: What is your 2fa code?
+    private: yes
+  tasks:
+  - sts_assume_role:
+      mfa_token: "{{ two_factor_code }}"
+      mfa_serial_number: arn:aws:iam::REDACTED:mfa/ryansb
+      role_arn: arn:aws:iam::REDACTED:role/ryansb-prod-admin
+      role_session_name: ryansb-test-with-ansible
+      region: us-west-2
+      duration_seconds: 900
+      profile: ryansb_basic
+    register: assumed_role
+  - block:
+    - ec2_vpc_subnet_facts:
+        region: us-west-2
+    environment:
+      AWS_SECRET_ACCESS_KEY: "{{ assumed_role.sts_creds.secret_key }}"
+      AWS_ACCESS_KEY_ID: "{{ assumed_role.sts_creds.access_key }}"
+      AWS_SESSION_TOKEN: "{{ assumed_role.sts_creds.session_token }}"
