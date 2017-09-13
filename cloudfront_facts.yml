@@ -1,0 +1,11 @@
+---
+- hosts: localhost
+  gather_facts: false
+  connection: local
+  tasks:
+  - cloudfront_facts:
+      profile: demo
+  - set_fact:
+      distribution: "{{ cloudfront.distributions['static.test.backed.tech'] }}"
+  - debug:
+      msg: "backed.tech distribution has ID {{ distribution.Id }} and is {{ distribution.Status | lower}}"

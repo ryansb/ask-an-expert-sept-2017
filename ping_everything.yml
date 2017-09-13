@@ -1,0 +1,5 @@
+---
+- hosts: key_warspite
+  gather_facts: no
+  tasks:
+    - command: uptime

@@ -1,0 +1,6 @@
+---
+- hosts: tag_aws_autoscaling_groupName_basic_asg
+  serial: 2
+  gather_facts: no
+  tasks:
+    - command: sleep 5
