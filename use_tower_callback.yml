@@ -1,0 +1,59 @@
+---
+- name: Set up aws connection info
+  set_fact:
+    aws_connection_info: &aws_connection_info
+      profile: "summit-18"
+      region: "{{ aws_region }}"
+    tower_job_secret: "INSERT SECRET HERE"
+  no_log: yes
+- ec2_ami_facts:
+    # https://wiki.centos.org/Cloud/AWS collected 2018-01-10
+    <<: *aws_connection_info
+    filters:
+      architecture: x86_64
+      product-code: aw0evgkw8e5c1q413zgy5pjce
+      virtualization-type: hvm
+      root-device-type: ebs
+      name: 'CentOS Linux 7*'
+  register: amis
+- set_fact:
+    latest_centos: >
+      {{ amis.images | sort(attribute='creation_date') | last }}
+- name: Get VPC ID
+  ec2_vpc_net_facts:
+    filters:
+      cidr: 10.0.0.0/20
+    <<: *aws_connection_info
+  register: networks
+- debug: var=networks
+- ec2_vpc_subnet_facts:
+    <<: *aws_connection_info
+    filters:
+      vpc-id: '{{ networks.vpcs[0].id }}'
+      availability-zone: '{{ aws_region }}b'
+  register: nets
+- debug: var=nets
+- ec2_instance:
+    state: running
+    wait: false
+    image:
+      id: "{{ latest_centos.image_id }}"
+    <<: *aws_connection_info
+    key_name: "{{ demo_prefix }}-ssh-key"
+    instance_type: t2.large
+    name: summit-web-test
+    security_groups:
+      - '{{ demo_prefix }}-web'
+      - '{{ demo_prefix }}-ssh'
+    tower_callback:
+      host_config_key: "{{ tower_job_secret }}"
+      job_template_id: "configure-web-server"
+      tower_address: INSERT TOWER IP OR DNS HERE
+    network:
+      assign_public_ip: true
+    tags:
+      App: FakeNginx
+    vpc_subnet_id: '{{ nets.subnets[0].id }}'
+  register: result
+- debug: var=result.instances[0].instance_id
+- debug: var=result.instances[0].public_ip_address
